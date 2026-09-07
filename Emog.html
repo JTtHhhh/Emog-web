@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMoG: Emotion-Aware Locomotion for Humanoid Robots</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f6f8fc;
+      --surface: #ffffff;
+      --border: #dbe3f1;
+      --accent: #2f6fe6;
+      --accent2: #1f5fd6;
+      --gold: #9a6a00;
+      --text: #1f2a44;
+      --muted: #6a7896;
+      --white: #0f1a30;
+      --intensity-ratio: 25/9;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.18;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(246,248,252,0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(196,210,235,0.7);
+    }
+    .nav-brand {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--accent2);
+      letter-spacing: 0.05em;
+    }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a { font-size: 13px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--white); }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px 60px;
+      position: relative;
+      text-align: center;
+    }
+    .hero-glow {
+      position: absolute;
+      width: 900px; height: 600px;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -55%);
+      background: radial-gradient(ellipse at center, rgba(79,142,247,0.16) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .venue-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(79,142,247,0.1);
+      border: 1px solid rgba(79,142,247,0.3);
+      border-radius: 999px;
+      padding: 6px 18px;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent2);
+      letter-spacing: 0.05em;
+      margin-bottom: 32px;
+      animation: fadeUp 0.6s ease both;
+    }
+    .venue-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .hero h1 {
+      font-family: 'Crimson Pro', Georgia, serif;
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 300;
+      line-height: 1.2;
+      color: var(--white);
+      max-width: 860px;
+      margin-bottom: 8px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    .hero h1 em { font-style: italic; color: var(--gold); }
+
+    .paper-subtitle {
+      font-family: 'Crimson Pro', serif;
+      font-size: 1.2rem;
+      font-weight: 300;
+      color: var(--muted);
+      margin-bottom: 40px;
+      animation: fadeUp 0.6s 0.15s ease both;
+    }
+    .authors {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px 20px;
+      margin-bottom: 12px;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+    .author { font-size: 15px; color: var(--text); }
+    .author sup { font-size: 10px; color: var(--accent); }
+
+    .affiliations {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 40px;
+      animation: fadeUp 0.6s 0.25s ease both;
+    }
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #245ed1; transform: translateY(-1px); }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+
+    /* TEASER VIDEO */
+    .teaser-wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+    .big-video {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      aspect-ratio: 16/9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .big-video-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      color: var(--muted);
+    }
+    .play-btn {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: rgba(79,142,247,0.15);
+      border: 2px solid rgba(79,142,247,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .play-btn:hover { background: rgba(79,142,247,0.3); border-color: var(--accent); transform: scale(1.05); }
+    .play-btn svg { fill: var(--accent2); }
+
+    /* SECTIONS */
+    section {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 72px 24px;
+    }
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    h2 {
+      font-family: 'Crimson Pro', serif;
+      font-size: clamp(1.7rem, 3vw, 2.5rem);
+      font-weight: 400;
+      color: var(--white);
+      margin-bottom: 32px;
+      line-height: 1.25;
+    }
+    p { color: var(--text); margin-bottom: 16px; font-size: 16px; }
+    .divider { border: none; border-top: 1px solid var(--border); }
+
+    /* VIDEO CARD */
+    .video-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .video-card:hover { border-color: rgba(79,142,247,0.45); transform: translateY(-2px); }
+
+    .vthumb {
+      aspect-ratio: 16/9;
+      background: linear-gradient(135deg, #edf3ff, #e4ecfa);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .vthumb video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #000;
+    }
+    .vthumb-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+    }
+    .mini-play {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: rgba(79,142,247,0.15);
+      border: 1.5px solid rgba(79,142,247,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mini-play svg { fill: var(--accent2); }
+    .vcap {
+      padding: 10px 14px 13px;
+      font-size: 13px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* GRIDS */
+    .grid-2x2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+    .grid-3x1 { display: grid; grid-template-columns: repeat(1,1fr); gap: 16px; }
+
+    /* Intensity section: make video window ratio adjustable independently */
+    #intensity .vthumb { aspect-ratio: var(--intensity-ratio); }
+    #intensity .vthumb video { object-fit: contain; }
+
+    /* METHOD */
+    .method-fig {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .method-fig-img {
+      width: 100%;
+      aspect-ratio: 16/7;
+      background: linear-gradient(135deg, #edf3ff, #e4ecfa);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .method-fig-img::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(45deg, transparent, transparent 22px, rgba(79,142,247,0.025) 22px, rgba(79,142,247,0.025) 44px);
+    }
+    .method-fig-img.has-image::after { display: none; }
+    .method-fig-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      position: relative;
+      z-index: 1;
+      background: #f3f7ff;
+    }
+    .fig-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      z-index: 1;
+    }
+    .fig-icon {
+      width: 52px; height: 52px;
+      border-radius: 12px;
+      background: rgba(79,142,247,0.1);
+      border: 1px dashed rgba(79,142,247,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .method-cap {
+      padding: 14px 20px;
+      font-size: 13px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      line-height: 1.65;
+    }
+    .method-cap strong { color: var(--text); }
+
+    /* BIBTEX */
+    .bibtex-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.9;
+      overflow-x: auto;
+      position: relative;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 12px; right: 12px;
+      background: rgba(79,142,247,0.15);
+      border: 1px solid rgba(79,142,247,0.3);
+      border-radius: 6px;
+      color: var(--accent2);
+      font-size: 12px;
+      padding: 4px 12px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover { background: rgba(79,142,247,0.3); }
+    .bib-tag { color: var(--gold); }
+    .bib-key { color: var(--accent2); }
+    .bib-val { color: #a8c4e0; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    @media (max-width: 700px) {
+      .grid-2x2, .grid-3, .grid-3x1 { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+    @media (min-width: 701px) and (max-width: 860px) {
+      .grid-3, .grid-3x1 { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-brand">EMoG · 2026</span>
+  <div class="nav-links">
+    <a href="#emotions">Emotions</a>
+    <a href="#intensity">Intensity</a>
+    <a href="#text">Text Control</a>
+    <a href="#method">Method</a>
+    <!-- <a href="#citation">Citation</a> -->
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-glow"></div>
+  <!-- <div class="venue-badge">arXiv 2026 · Humanoid Robotics</div> -->
+  <div class="venue-badge">2026 · Humanoid Robotics</div>
+  <h1><em>EMoG:</em> Emotion-Aware Locomotion<br>for Humanoid Robots with<br>Controllable Gaits</h1>
+  <p class="paper-subtitle">Affective Computing · Gait Control · Text-Driven Motion · Humanoid</p>
+
+  <div class="authors">
+    <span class="author">Yi Lu<sup>1,2</sup><sup>*</sup></span>
+    <span class="author">Tianhao Jiang<sup>1,2</sup><sup>*</sup></span>
+    <span class="author">Honglong Tian<sup>1</sup></span>
+    <span class="author">Yumeng Zhang<sup>1</sup></span>
+    <span class="author">Qingrui Zhao<sup>1,2</sup></span>
+    <span class="author">Zhengtao Wang<sup>1</sup></span>
+    <span class="author">Qiu Shen<sup>1,2</sup></span>
+    <span class="author">Xiaoxiao Long<sup>1</sup></span>
+    <span class="author">Xun Cao<sup>1,2</sup></span>
+    <!-- <span class="author">Author Ten<sup>1</sup></span> -->
+  </div>
+  <p class="affiliations">
+    <sup>1</sup> Nanjing University<br />
+    <sup>2</sup> Key Laboratory of Optoelectronic Devices and Systems with Extreme Performances of MOE, Nanjing University
+  </p>
+
+  <div class="cta-row">
+    <a href="#" class="btn btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 2v6h6"/></svg>
+      Paper (Soon)
+    </a>
+    <a href="#" class="btn btn-outline">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      Code (Soon)
+    </a>
+    <a href="#emotions" class="btn btn-outline">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Videos
+    </a>
+  </div>
+</div>
+
+<!-- TEASER VIDEO -->
+<div class="teaser-wrap">
+  <div class="big-video">
+    <video controls autoplay muted loop playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;">
+      <source src="./videos/intro.mp4" type="video/mp4" />
+    </video>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<!-- SECTION 1: Walking with Different Emotions -->
+<section id="emotions">
+  <p class="section-label reveal">Results</p>
+  <h2 class="reveal">Walking with Different Emotions</h2>
+
+  <div class="grid-2x2">
+    <div class="video-card reveal">
+      <div class="vthumb">
+        <video controls autoplay muted loop preload="metadata" playsinline>
+          <source src="./videos/front-happy-1.mp4" type="video/mp4" />
+        </video>
+      </div>
+      <div class="vcap">😊 &nbsp;Happy</div>
+    </div>
+    <div class="video-card reveal">
+      <div class="vthumb">
+        <video controls autoplay muted loop preload="metadata" playsinline>
+          <source src="./videos/front-sad-1.mp4" type="video/mp4" />
+        </video>
+      </div>
+      <div class="vcap">😢 &nbsp;Sad</div>
+    </div>
+    <div class="video-card reveal">
+      <div class="vthumb">
+        <video controls autoplay muted loop preload="metadata" playsinline>
+          <source src="./videos/front-confident-1.mp4" type="video/mp4" />
+        </video>
+      </div>
+      <div class="vcap">😎 &nbsp;Confident</div>
+    </div>
+    <div class="video-card reveal">
+      <div class="vthumb">
+        <video controls autoplay muted loop preload="metadata" playsinline>
+          <source src="./videos/front-scared-1.mp4" type="video/mp4" />
+        </video>
+      </div>
+      <div class="vcap">😨 &nbsp;Scared</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- SECTION 2: Intensity -->
+<section id="intensity">
+  <p class="section-label reveal">Results</p>
+  <h2 class="reveal">Gait Changes as Emotional Intensity<br>Increases from Low to High</h2>
+
+  <div class="grid-3x1">
+    <div class="video-card reveal">
+      <div class="vthumb">
+        <video controls autoplay muted loop preload="metadata" playsinline>
+          <source src="./videos/happy_intensity_sweep.mp4" type="video/mp4" />
+        </video>
+      </div>
+      <div class="vcap">😊 Happy</div>
+    </div>
+    <div class="video-card reveal">
+      <div class="vthumb">
+        <video controls autoplay muted loop preload="metadata" playsinline>
+          <source src="./videos/sad_intensity_sweep.mp4" type="video/mp4" />
+        </video>
+      </div>
+      <div class="vcap">😢 Sad</div>
+    </div>
+    <div class="video-card reveal">
+      <div class="vthumb">
+        <video controls autoplay muted loop preload="metadata" playsinline>
+          <source src="./videos/scared_intensity_sweep.mp4" type="video/mp4" />
+        </video>
+      </div>
+      <div class="vcap">😨 Scared</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- SECTION 3: Text Input -->
+<section id="text">
+  <p class="section-label reveal">Results</p>
+  <h2 class="reveal">Emotion-Aware Gait Generation<br>from Textual Input</h2>
+
+  <div class="video-card reveal">
+    <div class="vthumb" style="width:100%;height:100%;object-fit:cover;">
+      <video controls autoplay muted loop preload="metadata" playsinline>
+          <source src="./videos/text_driven.mp4" type="video/mp4" />
+        </video>
+    </div>
+    <div class="vcap">Text-conditioned emotion-aware gait generation</div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- SECTION 4: Method -->
+<section id="method">
+  <p class="section-label reveal">Method</p>
+  <h2 class="reveal">Method</h2>
+
+  <div class="method-fig reveal">
+    <div class="method-fig-img has-image">
+      <img src="./images/framework.png" alt="Method diagram" loading="lazy" />
+    </div>
+    <div class="method-cap">
+      <strong>Figure 1.</strong> Overview of the EMoG framework. Textual inputs are analyzed to infer emotional states, which are mapped to interpretable gait physical and emotional parameters. Conditioned on these parameters, gait trajectories are generated and robustly tracked to produce stable and expressive humanoid locomotion.
+    </div>
+  </div>
+
+  <!-- <p class="reveal" style="font-size:15px; line-height:1.85; margin-bottom:28px;">Method description placeholder. Describe the key components and design choices of your approach here. Replace this paragraph with your actual method description.</p> -->
+
+  <div class="method-fig reveal">
+    <div class="method-fig-img has-image">
+      <img src="./images/collection_refinement.png" alt="Method diagram" loading="lazy" />
+    </div>
+    <div class="method-cap">
+      <strong>Figure 2.</strong> Pipeline for emotion-annotated gait collection and refinement
+    </div>
+  </div>
+
+  <!-- <p class="reveal" style="font-size:15px; line-height:1.85;">Additional method description placeholder. Elaborate on the training procedure, loss functions, and how emotion conditioning is integrated into the locomotion policy.</p> -->
+</section>
+
+<hr class="divider" />
+
+<!-- CITATION -->
+<!-- <section id="citation">
+  <p class="section-label reveal">Citation</p>
+  <h2 class="reveal">BibTeX</h2>
+
+  <div class="bibtex-block reveal">
+    <button class="copy-btn" onclick="copyBib(this)">Copy</button>
+<span class="bib-tag">@article</span>{<span class="bib-key">emog2026</span>,<br>
+&nbsp;&nbsp;<span class="bib-key">title</span>&nbsp;&nbsp;&nbsp; = {<span class="bib-val">EMoG: Emotion-Aware Locomotion for Humanoid Robots with Controllable Gaits</span>},<br>
+&nbsp;&nbsp;<span class="bib-key">author</span>&nbsp;&nbsp; = {<span class="bib-val">Author One and Author Two and others</span>},<br>
+&nbsp;&nbsp;<span class="bib-key">journal</span> = {<span class="bib-val">arXiv preprint</span>},<br>
+&nbsp;&nbsp;<span class="bib-key">year</span>&nbsp;&nbsp;&nbsp; = {<span class="bib-val">2026</span>},<br>
+}
+  </div>
+</section> -->
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2026 &nbsp;·&nbsp; EMoG Project Page</p>
+</footer>
+
+<script>
+  const revealEls = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 70);
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  revealEls.forEach(el => observer.observe(el));
+
+  function copyBib(btn) {
+    const text = `@article{emog2026,
+  title   = {EMoG: Emotion-Aware Locomotion for Humanoid Robots with Controllable Gaits},
+  author  = {Author One and Author Two and others},
+  journal = {arXiv preprint},
+  year    = {2026},
+}`;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
+  }
+</script>
+</body>
+</html>
