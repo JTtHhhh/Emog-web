@@ -563,7 +563,7 @@
           <source src="videos/text_driven.mp4" type="video/mp4" />
         </video>
     </div>
-    <div class="vcap">Text-conditioned emotion-aware gait generation</div>
+    <div class="vcap">Language-driven emotional-style gait</div>
   </div>
 </section>
 
@@ -579,7 +579,7 @@
       <img src="images/framework.png" alt="Method diagram" loading="lazy" />
     </div>
     <div class="method-cap">
-      <strong>Figure 1.</strong> Overview of the EMoG framework. Textual inputs are analyzed to infer emotional states, which are mapped to interpretable gait physical and emotional parameters. Conditioned on these parameters, gait trajectories are generated and robustly tracked to produce stable and expressive humanoid locomotion.
+      <strong>Figure 1.</strong> EMoG centers on an emotional-style gait generator that takes a continuously emotional-style modulation code and separately specified physical commands as inputs, generating real-time whole-body periodic reference trajectories, which are executed on a humanoid by a downstream unified motion tracker. The framework also connects to an LLM-compatible language interface that parses emotional cues and motion instructions from text into style parameters and physical commands, enabling intuitive interaction while maintaining explicit control over gait style and physical commands.
     </div>
   </div>
 
